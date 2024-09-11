@@ -1,12 +1,15 @@
 import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
 import "./App.css";
 import { CircleCheckBig } from "lucide-react";
 import axios from "axios";
 import { useEffect, useState } from "react";
 
 const App = () => {
-  const [post, setPost] = useState();
+  const [post, setPost] = useState([]);
   const [newTask, setNewTask] = useState("");
+  const [editTask, setEditTask] = useState(null);
+  const [editTaskValue, setEditTaskValue] = useState("");
 
   useEffect(() => {
     axios
@@ -34,11 +37,43 @@ const App = () => {
       });
   };
 
+  const handleDeleteTask = (id) => {
+    axios
+      .delete(`http://localhost:8080/todo/${id}`)
+      .then(() => {
+        console.log("Tarefa excluída com sucesso");
+        setPost((prevPosts) => prevPosts.filter((item) => item.idTodo !== id));
+      })
+      .catch(() => {
+        console.log("Erro ao excluir tarefa");
+      });
+  };
+
+  const handleEditTask = (id) => {
+    const updatedTask = { todo: editTaskValue };
+
+    axios
+      .put(`http://localhost:8080/todo/${id}`, updatedTask)
+      .then(() => {
+        console.log("Tarefa atualizada com sucesso");
+        setPost((prevPosts) =>
+          prevPosts.map((item) =>
+            item.idTodo === id ? { ...item, todo: editTaskValue } : item
+          )
+        );
+        setEditTask(null);
+        setEditTaskValue("");
+      })
+      .catch(() => {
+        console.log("Erro ao atualizar tarefa");
+      });
+  };
+
   return (
     <>
       <div className="cabecalho">
         <CircleCheckBig />
-        <h1>Todo</h1>
+        <h1>To-do</h1>
       </div>
       <div className="inputlista">
         <input
@@ -54,9 +89,41 @@ const App = () => {
 
       <div>
         <div className="lista-todo">
-          <p>Tarefas criadas</p>
-          <ul>
-            {post && post.map((item) => <li key={item.idTodo}>{item.todo}</li>)}
+          <p>Tarefas criadas:</p>
+          <ul className="ultexte">
+            {post &&
+              post.map((item) => (
+                <li key={item.idTodo} className="itemidTodo">
+                  {editTask === item.idTodo ? (
+                    <TextField
+                      value={editTaskValue}
+                      onChange={(e) => setEditTaskValue(e.target.value)}
+                      onBlur={() => handleEditTask(item.idTodo)}
+                      autoFocus
+                    />
+                  ) : (
+                    <>
+                      {item.todo}
+                      <Button
+                        variant="outlined"
+                        onClick={() => {
+                          setEditTask(item.idTodo);
+                          setEditTaskValue(item.todo);
+                        }}
+                      >
+                        Editar
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={() => handleDeleteTask(item.idTodo)}
+                      >
+                        Excluir
+                      </Button>
+                    </>
+                  )}
+                </li>
+              ))}
           </ul>
         </div>
       </div>
